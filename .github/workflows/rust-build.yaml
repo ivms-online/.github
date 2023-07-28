@@ -1,0 +1,105 @@
+##
+# This file is part of the IVMS Online.
+#
+# @copyright 2023 © by Rafał Wrzeszcz - Wrzasq.pl.
+##
+
+on:
+    workflow_call:
+
+env:
+    SCCACHE_GHA_ENABLED: "true"
+
+jobs:
+    build:
+        runs-on: "ubuntu-22.04"
+        container:
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.0.3"
+            # needed for tarpaulin
+            options: "--security-opt seccomp=unconfined"
+        services:
+            dynamodb:
+                image: "amazon/dynamodb-local:2.0.0"
+        steps:
+            -
+                uses: "actions/checkout@v3.5.3"
+            -
+                uses: "crazy-max/ghaction-github-runtime@v2.2.0"
+            -
+                run: "make build-dev"
+            -
+                run: "make test"
+                env:
+                    AWS_REGION: "${{ vars.AWS_REGION }}"
+                    AWS_ACCESS_KEY_ID: "dummy"
+                    AWS_SECRET_ACCESS_KEY: "dummy"
+                    DYNAMODB_LOCAL_HOST: "http://dynamodb:8000"
+            -
+                uses: "actions-rs/clippy-check@v1.0.7"
+                with:
+                    token: "${{ secrets.GITHUB_TOKEN }}"
+            -
+                uses: "LoliGothick/rustfmt-check@v0.4.1"
+                with:
+                    token: "${{ secrets.GITHUB_TOKEN }}"
+                    flags: "--all"
+                    args: "--config max_width=120,newline_style=Unix,edition=2021"
+            -
+                run: "cargo udeps"
+            -
+                run: "make doc"
+            -
+                uses: "codecov/codecov-action@v3.1.4"
+                with:
+                    token: "${{ vars.CODECOV_TOKEN }}"
+                    flags: "unittests,rust-${{ vars.RUST_BUILD_TARGET }}"
+                    fail_ci_if_error: true
+                    verbose: true
+
+    release:
+        if: "(github.event_name == 'push') && (github.event.ref == 'refs/heads/master')"
+        runs-on: "ubuntu-22.04"
+        container:
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.0.3"
+        needs: "build"
+        permissions:
+            contents: "write"
+            id-token: "write"
+        steps:
+            -
+                uses: "actions/checkout@v3.5.3"
+            -
+                uses: "crazy-max/ghaction-github-runtime@v2.2.0"
+            -
+                uses: "aws-actions/configure-aws-credentials@v2.2.0"
+                with:
+                    role-to-assume: "${{ secrets.AWS_IAM_ROLE_ARN }}"
+                    aws-region: "${{ vars.AWS_REGION }}"
+            -
+                run: |
+                    git config --global user.name "GitHub Actions"
+                    git config --global user.email "office@wrzasq.pl"
+                    git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            -
+                run: "cargo release patch --execute --no-confirm --no-publish --all-features --tag-name 'release-{{version}}' --no-push"
+            -
+                id: "tag"
+                run: "echo version=$(git describe --abbrev=0 | sed s/release-//g) >> $GITHUB_OUTPUT"
+            -
+                run: "make build"
+            -
+                run: "make package"
+            -
+                run: |
+                    for file in target/*.zip; do
+                        aws s3 cp $file "s3://chilldev-repository/sam/${GITHUB_REPOSITORY}/${{ steps.tag.outputs.version }}/";
+                    done
+
+                    echo "{\"version\":\"${{ steps.tag.outputs.version }}\"}" > build-info.json
+                    zip --exclude "target/*" --exclude ".git*" -r checkout.zip .
+                    aws s3 cp checkout.zip "s3://stackset-organization-global-3616-pipelinesbucket-rjs8r4gs0f1d/${{ github.event.repository.name }}/checkout.zip"
+            -
+                uses: "ad-m/github-push-action@v0.6.0"
+                with:
+                    github_token: "${{ secrets.GITHUB_TOKEN }}"
+                    branch: "${{ github.ref }}"
