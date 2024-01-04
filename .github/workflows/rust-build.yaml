@@ -1,7 +1,7 @@
 ##
 # This file is part of the IVMS Online.
 #
-# @copyright 2023 © by Rafał Wrzeszcz - Wrzasq.pl.
+# @copyright 2023 - 2024 © by Rafał Wrzeszcz - Wrzasq.pl.
 ##
 
 on:
@@ -14,12 +14,10 @@ jobs:
     build:
         runs-on: "ubuntu-22.04"
         container:
-            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.1.0"
-            # needed for tarpaulin
-            options: "--security-opt seccomp=unconfined"
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.2.0"
         services:
             dynamodb:
-                image: "amazon/dynamodb-local:2.1.0"
+                image: "amazon/dynamodb-local:2.2.1"
         steps:
             -
                 uses: "actions/checkout@v4.1.1"
@@ -39,6 +37,8 @@ jobs:
             -
                 run: "make doc"
             -
+                run: "make lcov"
+            -
                 uses: "codecov/codecov-action@v3.1.4"
                 with:
                     token: "${{ vars.CODECOV_TOKEN }}"
@@ -50,7 +50,7 @@ jobs:
         if: "(github.event_name == 'push') && (github.event.ref == 'refs/heads/master')"
         runs-on: "ubuntu-22.04"
         container:
-            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.1.0"
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.2.0"
         needs: "build"
         permissions:
             contents: "write"
