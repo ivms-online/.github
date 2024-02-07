@@ -61,7 +61,7 @@ jobs:
             -
                 uses: "crazy-max/ghaction-github-runtime@v3.0.0"
             -
-                uses: "aws-actions/configure-aws-credentials@v4.0.1"
+                uses: "aws-actions/configure-aws-credentials@v4.0.2"
                 with:
                     role-to-assume: "${{ secrets.AWS_IAM_ROLE_ARN }}"
                     aws-region: "${{ vars.AWS_REGION }}"
