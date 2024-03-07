@@ -14,7 +14,7 @@ jobs:
     build:
         runs-on: "ubuntu-22.04"
         container:
-            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.2.0"
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.2.1"
         services:
             dynamodb:
                 image: "amazon/dynamodb-local:2.2.1"
@@ -50,7 +50,7 @@ jobs:
         if: "(github.event_name == 'push') && (github.event.ref == 'refs/heads/master')"
         runs-on: "ubuntu-22.04"
         container:
-            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.2.0"
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.2.1"
         needs: "build"
         permissions:
             contents: "write"
