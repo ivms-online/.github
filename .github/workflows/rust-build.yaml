@@ -21,7 +21,7 @@ jobs:
                 image: "amazon/dynamodb-local:2.6.1"
         steps:
             -
-                uses: "actions/checkout@v4.2.2"
+                uses: "actions/checkout@v5.0.0"
             -
                 uses: "mozilla-actions/sccache-action@v0.0.9"
             -
@@ -60,7 +60,7 @@ jobs:
             id-token: "write"
         steps:
             -
-                uses: "actions/checkout@v4.2.2"
+                uses: "actions/checkout@v5.0.0"
             -
                 uses: "mozilla-actions/sccache-action@v0.0.9"
             -
