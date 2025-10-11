@@ -53,7 +53,7 @@ jobs:
         if: "(github.event_name == 'push') && (github.event.ref == 'refs/heads/master')"
         runs-on: "ubuntu-24.04"
         container:
-            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.4.0"
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.3.1"
         needs: "build"
         permissions:
             contents: "write"
