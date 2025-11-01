@@ -27,8 +27,6 @@ jobs:
             -
                 uses: "crazy-max/ghaction-github-runtime@v3.1.0"
             -
-                run: "make build-dev"
-            -
                 run: "make test"
                 env:
                     AWS_REGION: "${{ vars.AWS_REGION }}"
