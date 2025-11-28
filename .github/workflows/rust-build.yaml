@@ -11,21 +11,19 @@ env:
     SCCACHE_GHA_ENABLED: "true"
 
 jobs:
-    build:
+    test:
         if: "(github.event_name == 'push') || (github.repository != github.event.pull_request.head.repo.full_name)"
         runs-on: "ubuntu-24.04"
         container:
-            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.4.0"
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.5.0"
         services:
             dynamodb:
                 image: "amazon/dynamodb-local:3.1.0"
         steps:
             -
-                uses: "actions/checkout@v5.0.0"
+                uses: "actions/checkout@v6.0.0"
             -
                 uses: "mozilla-actions/sccache-action@v0.0.9"
-            -
-                uses: "crazy-max/ghaction-github-runtime@v3.1.0"
             -
                 run: "make test"
                 env:
@@ -33,10 +31,6 @@ jobs:
                     AWS_ACCESS_KEY_ID: "dummy"
                     AWS_SECRET_ACCESS_KEY: "dummy"
                     DYNAMODB_LOCAL_HOST: "http://dynamodb:8000"
-            -
-                run: "make check"
-            -
-                run: "make doc"
             -
                 run: "make lcov"
             -
@@ -47,24 +41,51 @@ jobs:
                     fail_ci_if_error: true
                     verbose: true
 
+    lint:
+        if: "(github.event_name == 'push') || (github.repository != github.event.pull_request.head.repo.full_name)"
+        runs-on: "ubuntu-24.04"
+        container:
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.5.0"
+        steps:
+            -
+                uses: "actions/checkout@v6.0.0"
+            -
+                uses: "mozilla-actions/sccache-action@v0.0.9"
+            -
+                run: "make check"
+
+    doc:
+        if: "(github.event_name == 'push') || (github.repository != github.event.pull_request.head.repo.full_name)"
+        runs-on: "ubuntu-24.04"
+        container:
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.5.0"
+        steps:
+            -
+                uses: "actions/checkout@v6.0.0"
+            -
+                uses: "mozilla-actions/sccache-action@v0.0.9"
+            -
+                run: "make doc"
+
     release:
         if: "(github.event_name == 'push') && (github.event.ref == 'refs/heads/master')"
         runs-on: "ubuntu-24.04"
         container:
-            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.3.1"
-        needs: "build"
+            image: "rafalwrzeszczwrzasqpl/build-rust:nightly-v0.5.0"
+        needs:
+            - "test"
+            - "lint"
+            - "doc"
         permissions:
             contents: "write"
             id-token: "write"
         steps:
             -
-                uses: "actions/checkout@v5.0.0"
+                uses: "actions/checkout@v6.0.0"
             -
                 uses: "mozilla-actions/sccache-action@v0.0.9"
             -
-                uses: "crazy-max/ghaction-github-runtime@v3.1.0"
-            -
-                uses: "aws-actions/configure-aws-credentials@v5.1.0"
+                uses: "aws-actions/configure-aws-credentials@v5.1.1"
                 with:
                     role-to-assume: "${{ secrets.AWS_IAM_ROLE_ARN }}"
                     aws-region: "${{ vars.AWS_REGION }}"
